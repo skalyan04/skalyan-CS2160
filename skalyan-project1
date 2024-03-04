@@ -16,6 +16,16 @@ read_string:
     add a2, zero, a1    # Move buffer pointer to a2
     ecall               # Execute read system call
     ret
+# End of read_string function
+
+# Function to write to stdout from a buffer
+write_string:
+    li a7, __NR_WRITE   # System call number for write
+    mv a0, STDOUT       # File descriptor for stdout
+    mv a1, a0           # Move buffer pointer to a1
+    ecall               # Execute write system call
+    ret
+# End of write_string function
 
 
 main:
@@ -26,11 +36,9 @@ main:
 	# main() body
 
 	# Write the prompt to the terminal (stdout)
-	li a7, __NR_WRITE
-	li a0, STDOUT
-	la a1, prompt
-	addi  a2, zero, prompt_end - prompt        
-	ecall
+	la a0, prompt # Load address of prompt string
+    li a1, prompt_end - prompt   # Calculate length of prompt string
+    jal write_string # Call write_string function
 
 	#  Read up to 100 characters from the terminal (stdin)
 	mv a1, sp    # Move buffer pointer to a1
@@ -38,28 +46,17 @@ main:
     jal read_string # NEW: Call read_string function
 
 	# Write the just read characters to the terminal (stdout)
-	addi a2, a0, 0
-	li a7, __NR_WRITE
-	li a0, STDOUT
-	mv a1, sp
-	ecall
+	mv a1, a0               # Move buffer pointer to a1
+    jal write_string        # Call write_string function
 
 	# main() epilog
 	lw ra, 100(sp)
 	addi sp, sp, 104
 	ret
 
-
-#NEW: Function to write prompt to stdout
-write_string_prompt:
-    la a0, prompt           # Load address of prompt string
-    addi a1, zero, prompt_end - prompt  # Calculate length of prompt string
-    jal write_string        # Call write_string function
-    ret
-
-
 .data
 prompt:   .ascii  "Enter a message: "
 prompt_end:
+
 
 
