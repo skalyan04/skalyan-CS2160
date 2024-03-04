@@ -6,6 +6,18 @@
 .equ __NR_EXIT, 93
 
 .text
+
+
+# NEW: Function to read from stdin into a buffer
+read_string:
+    li a7, __NR_READ    # System call number for read
+    mv a0, STDIN        # File descriptor for stdin
+    mv a1, a0           # Move buffer pointer to a1
+    add a2, zero, a1    # Move buffer pointer to a2
+    ecall               # Execute read system call
+    ret
+
+
 main:
 	# main() prolog
 	addi sp, sp, -104
@@ -21,11 +33,9 @@ main:
 	ecall
 
 	#  Read up to 100 characters from the terminal (stdin)
-	li a7, __NR_READ
-	li a0, STDIN
-	mv a1, sp
-	addi a2, zero, 100
-	ecall
+	mv a1, sp    # Move buffer pointer to a1
+    li a2, 100  # Number of bytes to read
+    jal read_string # NEW: Call read_string function
 
 	# Write the just read characters to the terminal (stdout)
 	addi a2, a0, 0
@@ -39,6 +49,17 @@ main:
 	addi sp, sp, 104
 	ret
 
+
+#NEW: Function to write prompt to stdout
+write_string_prompt:
+    la a0, prompt           # Load address of prompt string
+    addi a1, zero, prompt_end - prompt  # Calculate length of prompt string
+    jal write_string        # Call write_string function
+    ret
+
+
 .data
 prompt:   .ascii  "Enter a message: "
 prompt_end:
+
+
