@@ -1,54 +1,14 @@
-.globl main
 .globl getchar
 .globl putchar
 .globl gets
 .globl puts
-.globl read_string
-.globl write_string
 
 .equ STDOUT, 1
 .equ STDIN, 0
 .equ __NR_READ, 63
 .equ __NR_WRITE, 64
-.equ __NR_EXIT, 93
 
 .text
-
-# Function to read from stdin into a buffer
-read_string:
-    # Function prologue
-    addi sp, sp, -16
-    sw ra, 0(sp)
-
-    # Read from stdin
-    li a7, __NR_READ    # System call number for read
-    li a0, STDIN        # File descriptor for stdin
-    mv a1, sp           # Move buffer pointer to a1
-    mv a2, a1           # Move buffer pointer to a2
-    ecall               # Execute read system call
-
-    # Function epilogue
-    lw ra, 0(sp)
-    addi sp, sp, 16
-    ret
-
-# Function to write to stdout from a buffer
-write_string:
-    # Function prologue
-    addi sp, sp, -16
-    sw ra, 0(sp)
-
-    # Write to stdout
-    li a7, __NR_WRITE   # System call number for write
-    li a0, STDOUT       # File descriptor for stdout
-    mv a1, sp           # Move buffer pointer to a1
-    mv a2, a0           # Move buffer size to a2
-    ecall               # Execute write system call
-
-    # Function epilogue
-    lw ra, 0(sp)
-    addi sp, sp, 16
-    ret
 
 # Function to read a single character from stdin
 getchar:
@@ -77,18 +37,18 @@ putchar:
 
 # Function to read a line from stdin into a buffer
 gets:
-    li a0, 0            # Initialize character count
+    mv a1, sp           # Save buffer address
+    mv a2, sp           # Save current character address
 gets_loop:
     jal getchar         # Call getchar to read a character
     mv t0, a0           # Move result to temporary register t0
     beqz t0, gets_exit  # If end of file or error, exit
-    sb t0, 0(sp)        # Store the character in the buffer
-    addi sp, sp, 1      # Move buffer pointer to the next character
-    addi a0, a0, 1      # Increment character count
-    li t1, 10           # Load newline character into t1
-    bne t0, t1, gets_loop # Continue reading until newline character
+    sb t0, 0(a2)        # Store the character in the buffer
+    addi a2, a2, 1      # Move buffer pointer to the next character
+   bne t0, x10, gets_loop # Continue reading until newline character
 gets_exit:
-    mv a0, a0           # Return the number of bytes read
+    sb x0, 0(a2)        # Null-terminate the string
+    sub a0, a2, a1      # Calculate the number of bytes read
     ret
 
 # Function to write a string to stdout
@@ -105,31 +65,32 @@ puts_exit:
     ret
 
 # Main function
+.globl main
 main:
-    # Main prologue
-    addi sp, sp, -104
-    sw ra, 100(sp)
+    # Allocate space for the buffer
+    addi sp, sp, -100
 
-    # Write the prompt to the terminal (stdout)
-    la a0, prompt       # Load address of prompt string
-    li a1, prompt_end - prompt   # Calculate length of prompt string
-    jal write_string    # Call write_string function
+    # Load the string pointer
+    la a0, str
 
-    # Read up to 100 characters from the terminal (stdin)
-    la a0, buf          # Load address of buffer
-    li a1, 100          # Number of bytes to read
-    jal read_string     # Call read_string function
+    # Call puts to print the string
+    jal puts
 
-    # Write the just read characters to the terminal (stdout)
-    la a0, buf          # Load address of buffer
-    jal write_string    # Call write_string function
+    # Load the buffer address
+    la a0, buffer
 
-    # Main epilogue
-    lw ra, 100(sp)
-    addi sp, sp, 104
-    ret
+    # Call gets to read input into the buffer
+    jal gets
+
+    # Call puts to print the buffer
+    la a0, buffer
+    jal puts
+
+    # Exit the program
+    li a7, 93           # System call number for exit
+    li a0, 0            # Exit code 0
+    ecall               # Execute exit system call
 
 .data
-prompt:   .ascii  "Enter a message: "
-prompt_end:
-buf:      .space 100     # Reserve space for buffer
+prompt: .ascii "Enter a message: "
+buffer: .space 100      # Buffer for input
