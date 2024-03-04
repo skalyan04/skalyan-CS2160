@@ -91,6 +91,18 @@ gets_exit:
     mv a0, a0           # Return the number of bytes read
     ret
 
+# Function to write a string to stdout
+puts:
+    mv a1, sp           # Move buffer pointer to a1 (string to write)
+puts_loop:
+    lb t0, 0(a1)        # Load a character from the string
+    beqz t0, puts_exit  # If null terminator is reached, exit
+    jal putchar         # Call putchar to write the character
+    addi a1, a1, 1      # Move to the next character in the string
+    j puts_loop         # Continue writing characters
+puts_exit:
+    li a0, 0            # Return 0 on success
+    ret
 
 # Main function
 main:
