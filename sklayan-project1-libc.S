@@ -75,6 +75,22 @@ putchar:
     mv a0, a1           # Return the input unsigned char
     ret
 
+# Function to read a line from stdin into a buffer
+gets:
+    li a0, 0            # Initialize character count
+gets_loop:
+    jal getchar         # Call getchar to read a character
+    mv t0, a0           # Move result to temporary register t0
+    beqz t0, gets_exit  # If end of file or error, exit
+    sb t0, 0(sp)        # Store the character in the buffer
+    addi sp, sp, 1      # Move buffer pointer to the next character
+    addi a0, a0, 1      # Increment character count
+    li t1, 10           # Load newline character into t1
+    bne t0, t1, gets_loop # Continue reading until newline character
+gets_exit:
+    mv a0, a0           # Return the number of bytes read
+    ret
+
 
 # Main function
 main:
