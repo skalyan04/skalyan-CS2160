@@ -65,6 +65,16 @@ getchar_exit:
     li t0, -1           # Return -1 on end of file or error
     ret
 
+# Function to write a single character to stdout
+putchar:
+    li a7, __NR_WRITE   # System call number for write
+    li a0, STDOUT       # File descriptor for stdout
+    mv a1, sp           # Move buffer pointer to a1 (character to write)
+    li a2, 1            # Number of bytes to write (1 character)
+    ecall               # Execute write system call
+    mv a0, a1           # Return the input unsigned char
+    ret
+
 
 # Main function
 main:
