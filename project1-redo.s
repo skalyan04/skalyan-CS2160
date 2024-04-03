@@ -39,6 +39,26 @@ main:
 	addi sp, sp, 104
 	ret
 
+read_string:
+    # Procedure - see below
+    # Prolog
+    addi sp, sp, -12        # Make room for 3 items on the stack
+    sw a1, 0(sp)            # Save a1
+    sw a2, 4(sp)            # Save a2
+    sw a7, 8(sp)            # Save a7
+    # Body
+    mv a2, a1               # Move a1 into a2
+    mv a1, a0               # Move a0 into a1
+    li a0, STDIN            # Put STDIN code into a0
+    li a7, __NR_READ        # Put NR_READ code into a7
+    ecall
+    # Epilog
+    lw a1, 0(sp)            # Restore a1
+    lw a2, 4(sp)            # Restore a2
+    lw a7, 8(sp)            # Restore a7
+    addi sp, sp, 12         # Restore stack pointer
+    ret
+
 .data
 prompt:   .ascii  "Enter a message: "
 prompt_end:
