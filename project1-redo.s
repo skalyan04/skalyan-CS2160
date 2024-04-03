@@ -7,40 +7,23 @@
 
 .text
 main:
-	# main() prolog
-	addi sp, sp, -104
-	sw ra, 100(sp)
+	# Write the prompt to terminal
+    la a0, prompt           # Put address of prompt into a0
+    li a1, prompt_end - prompt  # Put the length of the string (in bytes) into a1
+    jal ra, write_string    # Call write_string
 
-	# main() body
+    # Read up to (buf_end - buffer) bytes from terminal input
+    la a0, buf              # Put address of buf into a0
+    li a1, buf_end - buf    # Put (buf_end - buffer) into a1
+    jal ra, read_string     # Call read_string
 
-	# Write the prompt to the terminal (stdout)
-	li a7, __NR_WRITE
-	li a0, STDOUT
-	la a1, prompt
-	addi  a2, zero, prompt_end - prompt        
-	ecall
-
-	#  Read up to 100 characters from the terminal (stdin)
-	li a7, __NR_READ
-	li a0, STDIN
-	mv a1, sp
-	addi a2, zero, 100
-	ecall
-
-	# Write the just read characters to the terminal (stdout)
-	addi a2, a0, 0
-	li a7, __NR_WRITE
-	li a0, STDOUT
-	mv a1, sp
-	ecall
-
-	# main() epilog
-	lw ra, 100(sp)
-	addi sp, sp, 104
-	ret
+    # At this point, a0 holds the number of bytes of the input
+    # Write the just read chars to the terminal
+    move a1, a0             # Move a0 to a1
+    la a0, buf              # Put address of buf into a0
+    jal ra, write_string    # Call write_strin
 
 write_string:
-    # Procedure - see below
     # Prolog
     addi sp, sp, -16        # Make room for 4 items on the stack
     sw a0, 0(sp)            # Save a0
@@ -62,7 +45,6 @@ write_string:
     ret
 
 read_string:
-    # Procedure - see below
     # Prolog
     addi sp, sp, -12        # Make room for 3 items on the stack
     sw a1, 0(sp)            # Save a1
@@ -82,5 +64,7 @@ read_string:
     ret
 
 .data
-prompt:   .ascii  "Enter a message: "
+prompt:   .ascii "Enter a message: "
 prompt_end:
+buf:      .space 100
+buf_end
