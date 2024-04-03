@@ -7,21 +7,21 @@
 
 .text
 main:
-	# Write the prompt to terminal
+    # Write the prompt to terminal
     la a0, prompt           # Put address of prompt into a0
-    li a1, prompt_end - prompt  # Put the length of the string (in bytes) into a1
+    li a1, 16               # Put the length of the string (in bytes) into a1
     jal ra, write_string    # Call write_string
 
-    # Read up to (buf_end - buffer) bytes from terminal input
+    # Read up to (buf_end - buf) bytes from terminal input
     la a0, buf              # Put address of buf into a0
-    li a1, buf_end - buf    # Put (buf_end - buffer) into a1
+    li a1, 100              # Put (buf_end - buffer) into a1
     jal ra, read_string     # Call read_string
 
     # At this point, a0 holds the number of bytes of the input
     # Write the just read chars to the terminal
-    move a1, a0             # Move a0 to a1
+    mv a1, a0               # Move a0 to a1
     la a0, buf              # Put address of buf into a0
-    jal ra, write_string    # Call write_strin
+    jal ra, write_string    # Call write_string
 
 write_string:
     # Prolog
@@ -33,8 +33,8 @@ write_string:
     # Body
     mv a2, a1               # Move a1 into a2
     mv a1, a0               # Move a0 into a1
-    li a0, STDOUT           # Put STDOUT code into a0
-    li a7, __NR_WRITE       # Put NR_WRITE code into a7
+    li a0, 1                # Put STDOUT code into a0
+    li a7, 64               # Put NR_WRITE code into a7
     ecall
     # Epilog
     lw a0, 0(sp)            # Restore a0
@@ -53,8 +53,8 @@ read_string:
     # Body
     mv a2, a1               # Move a1 into a2
     mv a1, a0               # Move a0 into a1
-    li a0, STDIN            # Put STDIN code into a0
-    li a7, __NR_READ        # Put NR_READ code into a7
+    li a0, 0                # Put STDIN code into a0
+    li a7, 63               # Put NR_READ code into a7
     ecall
     # Epilog
     lw a1, 0(sp)            # Restore a1
@@ -65,6 +65,5 @@ read_string:
 
 .data
 prompt:   .ascii "Enter a message: "
-prompt_end:
 buf:      .space 100
-buf_end
+buf_end:
