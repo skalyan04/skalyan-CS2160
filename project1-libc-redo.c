@@ -33,19 +33,19 @@ loop:
 getchar:
     # Prolog
     addi sp, sp, -4     # Reserve space on the stack
-    sw ra, 0(sp)         # Save return address
+    sw ra, 0(sp)        # Save return address
 
     # Body
-    li a0, STDIN         # File descriptor for stdin
-    li a2, 1             # Read one byte
-    li a7, __NR_READ     # System call number for read
-    ecall                # Invoke system call
+    li a0, STDIN        # File descriptor for stdin
+    li a1, 0            # Address to read into
+    li a2, 1            # Read one byte
+    li a7, __NR_READ    # System call number for read
+    ecall               # Invoke system call
 
     # Epilog
-    lw ra, 0(sp)         # Restore return address
-    mv a0, a0            # Move the read-in character to a0
-    addi sp, sp, 4       # Restore stack pointer
-    jr ra                # Return from subroutine
+    lw ra, 0(sp)        # Restore return address
+    addi sp, sp, 4      # Restore stack pointer
+    jr ra               # Return from subroutine
 
 # Implementation of putchar function
 putchar:
@@ -55,14 +55,12 @@ putchar:
 
     # Body
     li a0, STDOUT       # File descriptor for stdout
-    mv a1, a0           # Move the character to be written to a1
     li a2, 1            # Write one byte
     li a7, __NR_WRITE   # System call number for write
     ecall               # Invoke system call
 
     # Epilog
     lw ra, 0(sp)        # Restore return address
-    mv a0, a1           # Move the written character to a0
     addi sp, sp, 4      # Restore stack pointer
     jr ra               # Return from subroutine
 
@@ -76,7 +74,6 @@ gets:
 
     # Body
     mv a2, a1           # Move a1 into a2
-    mv a1, a0           # Move a0 into a1
     li a0, STDIN        # Put STDIN code into a0
     li a7, __NR_READ    # Put NR_READ code into a7
     ecall               # Invoke system call
@@ -96,7 +93,7 @@ puts:
 
     # Body
     # Load string address
-    la a1, buf
+    mv a1, a0           # Move the buffer address to a1
 putchar_loop:
     lbu a0, 0(a1)       # Load byte from buffer
     beqz a0, putchar_exit  # If byte is null, exit loop
