@@ -20,6 +20,11 @@ main:
     la a0, buf            # Put string pointer (buf) into a0
     jal ra, puts           # Call puts
 
+    # exit program
+    li a0, 0               # Put 0 into a0 (return 0)
+    li a7, __NR_EXIT       # Put NR_EXIT code into a7
+    ecall
+
 halt:
     ebreak
     j halt                 # stop execution
@@ -73,11 +78,15 @@ gets_loop:
     sb t0, 0(s0)           # Store the read-in character at the address pointer
     addi s0, s0, 1         # Increment s0 by 1
     li t1, 10              # Load the ASCII value of newline into a temporary register (t1)
-    bne t0, t1, gets_loop # Branch to gets_loop if read-in char is not newline
-    sb zero, 0(s0)         # End the input string with a terminating 0 byte
+    beq t0, t1, gets_exit # Branch to gets_exit if read-in char is newline
+    j gets_loop            # Continue loop if not newline
 
 gets_error:
     li a0, -1              # Put -1 into a0 (return -1)
+    j epilog_gets
+
+gets_exit:
+    sb zero, 0(s0)         # End the input string with a terminating 0 byte
     j epilog_gets
 
 epilog_gets:
