@@ -10,99 +10,131 @@
 
 # Main function
 main:
-    # Write the prompt to terminal
-    la a0, str           # Load prompt message address into a0
-    # Call puts function to print prompt
-    jal puts             
+    # Call puts (* str )
+    la a0, prompt            # Put string pointer (prompt) into a0
+    jal puts                 # Call puts
 
-    # Get input from the user
-    la a0, buf           # Load the address of the buffer into a0
-    # Call the gets function to read user input
-    jal gets             
+    # Call gets (* buf )
+    la a0, buf               # Put address pointer (buf) into a0
+    jal gets                 # Call gets
 
-    # Print the input message
-    la a0, buf           # Load input buffer address into a0
-    # Call the puts function to print the input message
-    jal puts             
-    
-# Function to read a character from stdin
-getchar:
-  # Put STDIN code into a0
-    li a0, STDIN        
-    # Put value 1 into a2 (read 1 byte) 
-    li a2, 1               
-    # Put NR_READ code into a7
-    li a7, __NR_READ       
-    # Invoke the read system call
-    ecall                
-    # Return the read character (already in a0)  
-    ret                     
+    # Call puts (* buf )
+    la a0, buf               # Put string pointer (buf) into a0
+    jal puts                 # Call puts
 
-# Function to write a character to stdout
-putchar:
-    # Put STDOUT code into a0
-    li a0, STDOUT    
-    # Put value 1 into a2 (write 1 byte)      
-    li a2, 1               
-     # Put NR_WRITE code into a7
-    li a7, __NR_WRITE     
-    # Invoke the write system call
-    ecall            
-    # Return the written character (same as input)       
-    ret                     
+    # Halt the program
+halt:
+    ebreak
+    j halt                   # Stop execution
 
 # Function to read a string from stdin
 gets:
-    # Move the address of the buffer to t0
-    mv t0, a0               
-    li t1, 100              # Maximum buffer size
+    # Prolog
+    addi sp, sp, -12        # Make room for 3 items on the stack
+    sw ra, 0(sp)            # Save return address
+    sw a0, 4(sp)            # Save addr pointer
+
 gets_loop:
-    jal ra, getchar         # Call getchar to read a character
-    # Move the read character to t2
-    mv t2, a0               
+    jal ra, getchar         # Call getchar
+    mv t2, a0               # Move the read character to t2
+
     li t3, -1               # Represent -1 as 0xffffffff
-     # If getchar returned -1, exit loop
-    beq t2, t3, gets_exit 
-    # Store the read-in character at the address pointer
-    sb t2, 0(t0)            
-    addi t0, t0, 1          # Increment t0 by 1
-    addi t1, t1, -1         # Decrement buffer size counter
+    beq t2, t3, gets_error  # If getchar returned -1, goto gets_error
+
+    sb t2, 0(t0)            # Store the read-in character at the address pointer
+    addi t0, t0, 1          # Increment buffer length counter
+
     li t4, 10               # ASCII value for newline character
-    # If read-in char is newline, exit loop
-    beq t2, t4, gets_exit  
-    # If buffer size reached, exit loop
-    beqz t1, gets_exit      
+    beq t2, t4, gets_exit   # If read-in char is newline, exit loop
+
     j gets_loop             # Continue loop
+
 gets_exit:
-    # End the input string with a null byte
-    sb zero, 0(t0)          
+    sb zero, 0(t0)          # End the input string with a null byte
     addi t0, t0, 1          # Move to the next byte
-     # Put the address of the null-terminated string into a0
-    mv a0, t0             
-    ret
+    mv a0, t0               # Put the address of the null-terminated string into a0
+
+    lw a0, 4(sp)            # Restore addr pointer
+    lw ra, 0(sp)            # Restore return address
+    addi sp, sp, 12         # Restore stack pointer
+    ret                     # Return
+
+gets_error:
+    lw ra, 0(sp)            # Restore return address
+    addi sp, sp, 12         # Restore stack pointer
+    ret                     # Return
 
 # Function to write a string to stdout
 puts:
-    mv t0, a0               # Move string address to t0
+    addi sp, sp, -4          # Adjust stack pointer to make room for one item
+    sw ra, 0(sp)             # Save return address
+
+    # Initialize s0 to point to the address pointer
+    mv s0, a0                # Move a0 into s0
+
 puts_loop:
-    # Load byte that t0 is currently pointing to into a0
-    lb a0, 0(t0)   
-    # If a0 is zero (null character), exit loop       
-    beqz a0, puts_exit 
-    # Call putchar to print the character     
-    jal ra, putchar    
-    # Increment string pointer t0     
-    addi t0, t0, 1          
-    j puts_loop             # Continue loop
+    lb a0, 0(s0)             # Load the byte that s0 is currently pointing to into a0
+    beqz a0, puts_exit       # If a0 is zero (null character), exit loop
+
+    jal ra, putchar          # Call putchar
+    addi s0, s0, 1           # Increment string pointer s0
+
+    bgez a0, puts_loop       # If a0 >= 0, continue loop
+
+    li a0, -1                # Put -1 into a0 (return -1)
+    addi sp, sp, 4           # Restore stack pointer
+    lw ra, 0(sp)             # Restore return address
+    ret                      # Return
+
 puts_exit:
-    # Put newline char into a0 (value 10)
-    li a0, 10     
-    # Call putchar to print newline         
-    jal ra, putchar   
-    # Put 0 into a0 (return 0)      
-    li a0, 0                
-    ret
-    
+    li a0, 10                # Put newline char into a0 (value 10)
+    jal ra, putchar          # Call putchar to print newline
+    li a0, 0                 # Put 0 into a0 (return 0)
+
+    lw ra, 0(sp)             # Restore return address
+    addi sp, sp, 4           # Restore stack pointer
+    ret                      # Return
+
+# Function to read a character from stdin
+getchar:
+    # Prolog
+    addi sp, sp, -12        # Make room for 3 items on the stack
+    sw a1, 0(sp)            # Save a1
+    sw a2, 4(sp)            # Save a2
+    sw a7, 8(sp)            # Save a7
+
+    # Body
+    mv a2, a1               # Move a1 into a2
+    mv a1, a0               # Move a0 into a1
+    li a0, 0                # Put STDIN code into a0
+    li a7, 63               # Put NR_READ code into a7
+    ecall
+
+    # Epilog
+    lw a1, 0(sp)            # Restore a1
+    lw a2, 4(sp)            # Restore a2
+    lw a7, 8(sp)            # Restore a7
+    addi sp, sp, 12         # Restore stack pointer
+
+    ret                     # Return
+
+# Function to write a character to stdout
+putchar:
+    addi sp, sp, -4          # Adjust stack pointer to make room for a temporary variable
+    sw a0, 0(sp)             # Store input char into memory
+
+    li a0, STDOUT            # Put STDOUT code into a0
+    mv a1, sp                # Put stack pointer into a1 as a pointer to input char
+    li a2, 1                 # Put value 1 into a2 (write 1 byte)
+    li a7, __NR_WRITE        # Put NR_WRITE code into a7
+    ecall                    # Invoke the write system call
+
+    lw a0, 0(sp)             # Load the input char back into a0
+    addi sp, sp, 4           # Restore stack pointer
+
+    ret                       # Return, a0 contains the same value as input char
+
 .data
-str: .ascii "Enter a message: "
+prompt: .ascii "Enter a message: "
 buf: .space 100
+buf_end:
