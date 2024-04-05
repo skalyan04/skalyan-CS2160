@@ -72,9 +72,9 @@ gets_loop:
     blt t0, zero, gets_error # If read-in char is negative, goto gets_error
     sb t0, 0(s0)           # Store the read-in character at the address pointer
     addi s0, s0, 1         # Increment s0 by 1
-    li t1, 10           # Load the ASCII value of newline into a temporary register (t1)
-    bne t0, t1, gets_loop  # Branch to gets_loop if read-in char is not newline
-    sb zero, -1(s0)        # End the input string with a terminating 0 byte
+    li t1, 10              # Load the ASCII value of newline into a temporary register (t1)
+    bne t0, t1, gets_loop # Branch to gets_loop if read-in char is not newline
+    sb zero, 0(s0)         # End the input string with a terminating 0 byte
 
 gets_error:
     li a0, -1              # Put -1 into a0 (return -1)
