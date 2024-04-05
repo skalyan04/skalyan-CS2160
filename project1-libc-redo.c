@@ -1,4 +1,5 @@
 .globl main
+
 .equ STDOUT, 1
 .equ STDIN, 0
 .equ __NR_READ, 63
@@ -7,74 +8,101 @@
 
 .text
 
+# Main function
 main:
-    # Print the prompt message
-    la a0, prompt         # Put string pointer (prompt) into a0
-    jal ra, puts          # Call puts
+    # Write the prompt to terminal
+    la a0, str           # Load prompt message address into a0
+    # Call puts function to print prompt
+    jal puts             
 
     # Get input from the user
-    la a0, buf            # Put address pointer (buf) into a0
-    jal ra, gets          # Call gets and read user input
+    la a0, buf           # Load the address of the buffer into a0
+    # Call the gets function to read user input
+    jal gets             
 
     # Print the input message
-    la a0, buf            # Put string pointer (buf) into a0
-    jal ra, puts          # Call puts to print the input message
-
-    # Exit the program
-    li a0, 0              # Put 0 into a0 (return 0)
-    li a7, __NR_EXIT      # Put NR_EXIT code into a7
-    ecall
-
-halt:
-    ebreak
-    j halt                 # stop execution
-
+    la a0, buf           # Load input buffer address into a0
+    # Call the puts function to print the input message
+    jal puts             
+    
+# Function to read a character from stdin
 getchar:
-    li a0, STDIN           # Put STDIN code into a0
-    li a2, 1               # Put value 1 into a2 (read in one byte)
-    li a7, __NR_READ       # Put NR_READ code into a7
-    ecall
-    ret
+  # Put STDIN code into a0
+    li a0, STDIN        
+    # Put value 1 into a2 (read 1 byte) 
+    li a2, 1               
+    # Put NR_READ code into a7
+    li a7, __NR_READ       
+    # Invoke the read system call
+    ecall                
+    # Return the read character (already in a0)  
+    ret                     
 
+# Function to write a character to stdout
 putchar:
-    li a0, STDOUT          # Put STDOUT code into a0
-    li a2, 1               # Put value 1 into a2 (write 1 byte)
-    li a7, __NR_WRITE      # Put NR_WRITE code into a7
-    ecall
-    ret
+    # Put STDOUT code into a0
+    li a0, STDOUT    
+    # Put value 1 into a2 (write 1 byte)      
+    li a2, 1               
+     # Put NR_WRITE code into a7
+    li a7, __NR_WRITE     
+    # Invoke the write system call
+    ecall            
+    # Return the written character (same as input)       
+    ret                     
 
+# Function to read a string from stdin
 gets:
-    mv t0, a0              # Move a0 into t0 (use t0 to increment the address pointer)
-    li t1, 100             # Maximum buffer size
+    # Move the address of the buffer to t0
+    mv t0, a0               
+    li t1, 100              # Maximum buffer size
 gets_loop:
-    jal ra, getchar        # Call getchar
-    sb a0, 0(t0)           # Store the read-in character at the address pointer
-    addi t0, t0, 1         # Increment t0 by 1
-    addi t1, t1, -1        # Decrement buffer size counter
-    beqz a0, gets_exit     # If read-in char is newline, exit loop
-    j gets_loop            # Continue loop
-
+    jal ra, getchar         # Call getchar to read a character
+    # Move the read character to t2
+    mv t2, a0               
+    li t3, -1               # Represent -1 as 0xffffffff
+     # If getchar returned -1, exit loop
+    beq t2, t3, gets_exit 
+    # Store the read-in character at the address pointer
+    sb t2, 0(t0)            
+    addi t0, t0, 1          # Increment t0 by 1
+    addi t1, t1, -1         # Decrement buffer size counter
+    li t4, 10               # ASCII value for newline character
+    # If read-in char is newline, exit loop
+    beq t2, t4, gets_exit  
+    # If buffer size reached, exit loop
+    beqz t1, gets_exit      
+    j gets_loop             # Continue loop
 gets_exit:
-    sb zero, 0(t0)         # End the input string with a terminating 0 byte
-    mv a0, t0              # Put the address of the null-terminated string into a0
+    # End the input string with a null byte
+    sb zero, 0(t0)          
+    addi t0, t0, 1          # Move to the next byte
+     # Put the address of the null-terminated string into a0
+    mv a0, t0             
     ret
 
+# Function to write a string to stdout
 puts:
-    mv t0, a0              # Move a0 into t0 (use t0 to increment the address pointer)
+    mv t0, a0               # Move string address to t0
 puts_loop:
-    lb a0, 0(t0)           # Load the byte that t0 is currently pointing to into a0
-    beqz a0, puts_exit     # If a0 is zero (null character), exit loop
-    jal ra, putchar        # Call putchar
-    addi t0, t0, 1         # Increment string pointer t0
-    j puts_loop            # Continue loop
-
+    # Load byte that t0 is currently pointing to into a0
+    lb a0, 0(t0)   
+    # If a0 is zero (null character), exit loop       
+    beqz a0, puts_exit 
+    # Call putchar to print the character     
+    jal ra, putchar    
+    # Increment string pointer t0     
+    addi t0, t0, 1          
+    j puts_loop             # Continue loop
 puts_exit:
-    li a0, 10              # Put newline char into a0 (value 10)
-    jal ra, putchar        # Call putchar to print newline
-    li a0, 0               # Put 0 into a0 (return 0)
+    # Put newline char into a0 (value 10)
+    li a0, 10     
+    # Call putchar to print newline         
+    jal ra, putchar   
+    # Put 0 into a0 (return 0)      
+    li a0, 0                
     ret
-
+    
 .data
-prompt: .ascii "Enter a message: "
-newline: .byte 10
+str: .ascii "Enter a message: "
 buf: .space 100
