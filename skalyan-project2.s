@@ -4,30 +4,24 @@
 .equ __NR_READ, 63
 .equ __NR_WRITE, 64
 .equ __NR_EXIT, 93
-
 .text
+
 main:
-	# main() prolog
-	addi sp, sp, -24
-	sw ra, 20(sp)
-
-	# main() body
-	la a0, prompt
-	call puts
-
-	mv a0, sp
-	call gets
-
-	mv a0, sp
-	call puts
-
-	# main() epilog
-	lw ra, 20(sp)
-	addi sp, sp, 24
-	ret
-
+    # main() prolog
+    addi sp, sp, -24
+    sw ra, 20(sp)
+    # main() body
+    la a0, prompt
+    call puts
+    mv a0, sp
+    call gets
+    mv a0, sp
+    call puts
+    # main() epilog
+    lw ra, 20(sp)
+    addi sp, sp, 24
+    ret
 .space 12288
-
 sekret_fn:
 	addi sp, sp, -4
 	sw ra, 0(sp)
@@ -36,21 +30,17 @@ sekret_fn:
 	lw ra, 0(sp)
 	addi sp, sp, 4
 	ret
-
 ##############################################################
 # Add your implementation of puts() and gets() below here
 ##############################################################
-
 getchar:
     addi sp, sp, -4         # Make room for 1 item on the stack
     sw zero, 0(sp)          # Zero-out the memory address that sp is pointing to
-
     li a0, STDIN            # Put STDIN code into a0
     mv a1, sp               # Put sp into a1 (a place to store the read-in char)
     li a2, 1                # Put value 1 into a2 (read in one byte)
     li a7, __NR_READ        # Put NR_READ code into a7
     ecall
-
     lw a0, 0(sp)            # Load *sp into a0 (return ASCII value)
     addi sp, sp, 4          # Restore sp
     ret
@@ -61,10 +51,8 @@ gets:
     sw ra, 0(sp)            # Save ra
     sw a0, 4(sp)            # Save a0
     sw s0, 8(sp)            # Save s0
-
     # Body
     mv s0, a0               # Move address pointer (a0) into s0
-
 gets_loop:
     jal ra, getchar         # Call getchar
     mv t0, a0               # Move the read character to t0
@@ -72,22 +60,31 @@ gets_loop:
     li t1, -1               # Check for negative read-in character (EOF)
     beq t0, t1, epilog_gets # If getchar returned -1, exit loop
 
+    # Check for newline character
+    li t2, 10               # Load ASCII value of newline character ('\n')
+    beq t0, t2, epilog_gets # If getchar returned newline character, exit loop
+
     sb t0, 0(s0)            # Store the read-in character at the address pointer
     addi s0, s0, 1          # Increment s0 by 1
+    
     j gets_loop             # Continue loop
-
+    
 epilog_gets:
-    # Null-terminate the string
-    sb zero, 0(s0)          # Store null character at the end of the string
+# Null-terminate the string
+ sb zero, 0(s0)          # Store null character at the end of the string
 
-    # Epilog
-    lw ra, 0(sp)            # Restore ra
-    lw a0, 4(sp)            # Restore a0
-    lw s0, 8(sp)            # Restore s0
-    addi sp, sp, 12         # Restore stack pointer
-    ret
+ # Print the input string
+  la a0, 0            # Load the address of the input string
+  call puts               # Call puts to print the input string
 
-putchar:
+  # Epilog
+  lw ra, 0(sp)            # Restore ra
+  lw a0, 4(sp)            # Restore a0
+  lw s0, 8(sp)            # Restore s0
+  addi sp, sp, 12         # Restore stack pointer
+  ret
+  
+  putchar:
     # Prolog
     addi sp, sp, -4         # Make room for 1 item on the stack
     sw a0, 0(sp)            # Store a0 into stack (save input char into memory)
@@ -103,17 +100,15 @@ putchar:
     lw a0, 0(sp)            # Load (byte value) of *sp back into a0
     addi sp, sp, 4          # Restore sp
     ret
-
+ 
 puts:
     # Prolog
     addi sp, sp, -12        # Make room for 3 items on the stack
     sw ra, 0(sp)            # Save ra
     sw a0, 4(sp)            # Save a0
     sw s0, 8(sp)            # Save s0
-
     # Body
     mv s0, a0               # Move address pointer (a0) into s0
-
 puts_loop:
     lb a1, 0(s0)            # Load the ASCII value from memory into a1
     beqz a1, puts_exit      # If ASCII value is zero (null char), exit loop
@@ -122,6 +117,8 @@ puts_loop:
     mv a0, a1               # Move the character to a0
     call putchar            # Call putchar
     addi s0, s0, 1          # Increment string pointer s0
+
+ # Load the next character from memory
     j puts_loop             # Continue loop
 
 puts_exit:
@@ -132,13 +129,21 @@ puts_exit:
     addi sp, sp, 12         # Restore stack pointer
     ret
 
+
 ##############################################################
 
 .data
 prompt:   .ascii  "Enter a message: "
 prompt_end:
-
+newline: .byte 10
 .word 0
 sekret_data:
 .word 0x73564753, 0x67384762, 0x79393256, 0x3D514762, 0x0000000A
 
+.data
+prompt:   .ascii  "Enter a message: "
+prompt_end:
+newline: .byte 10
+.word 0
+sekret_data:
+.word 0x73564753, 0x67384762, 0x79393256, 0x3D514762, 0x0000000A
