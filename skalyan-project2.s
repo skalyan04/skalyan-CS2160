@@ -72,10 +72,6 @@ gets_loop:
     li t1, -1               # Check for negative read-in character (EOF)
     beq t0, t1, epilog_gets # If getchar returned -1, exit loop
 
-    # Check for newline character
-    li t2, 10               # Load ASCII value of newline character ('\n')
-    beq t0, t2, epilog_gets # If getchar returned newline character, exit loop
-
     sb t0, 0(s0)            # Store the read-in character at the address pointer
     addi s0, s0, 1          # Increment s0 by 1
     j gets_loop             # Continue loop
@@ -84,17 +80,12 @@ epilog_gets:
     # Null-terminate the string
     sb zero, 0(s0)          # Store null character at the end of the string
 
-    # Print the input string
-    la a0, 0            # Load the address of the input string
-    call puts               # Call puts to print the input string
-
     # Epilog
     lw ra, 0(sp)            # Restore ra
     lw a0, 4(sp)            # Restore a0
     lw s0, 8(sp)            # Restore s0
     addi sp, sp, 12         # Restore stack pointer
     ret
-
 
 putchar:
     # Prolog
@@ -131,8 +122,6 @@ puts_loop:
     mv a0, a1               # Move the character to a0
     call putchar            # Call putchar
     addi s0, s0, 1          # Increment string pointer s0
-
-    # Load the next character from memory
     j puts_loop             # Continue loop
 
 puts_exit:
@@ -148,8 +137,8 @@ puts_exit:
 .data
 prompt:   .ascii  "Enter a message: "
 prompt_end:
-newline: .byte 10
 
 .word 0
 sekret_data:
 .word 0x73564753, 0x67384762, 0x79393256, 0x3D514762, 0x0000000A
+
