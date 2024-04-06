@@ -55,6 +55,47 @@ getchar:
     addi sp, sp, 4          # Restore sp
     ret
 
+gets:
+    # Prolog
+    addi sp, sp, -12        # Make room for 3 items on the stack
+    sw ra, 0(sp)            # Save ra
+    sw a0, 4(sp)            # Save a0
+    sw s0, 8(sp)            # Save s0
+
+    # Body
+    mv s0, a0               # Move address pointer (a0) into s0
+
+gets_loop:
+    jal ra, getchar         # Call getchar
+    mv t0, a0               # Move the read character to t0
+
+    li t1, -1               # Check for negative read-in character (EOF)
+    beq t0, t1, epilog_gets # If getchar returned -1, exit loop
+
+    # Check for newline character
+    li t2, 10               # Load ASCII value of newline character ('\n')
+    beq t0, t2, epilog_gets # If getchar returned newline character, exit loop
+
+    sb t0, 0(s0)            # Store the read-in character at the address pointer
+    addi s0, s0, 1          # Increment s0 by 1
+    j gets_loop             # Continue loop
+
+epilog_gets:
+    # Null-terminate the string
+    sb zero, 0(s0)          # Store null character at the end of the string
+
+    # Print the input string
+    la a0, 0            # Load the address of the input string
+    call puts               # Call puts to print the input string
+
+    # Epilog
+    lw ra, 0(sp)            # Restore ra
+    lw a0, 4(sp)            # Restore a0
+    lw s0, 8(sp)            # Restore s0
+    addi sp, sp, 12         # Restore stack pointer
+    ret
+
+
 putchar:
     # Prolog
     addi sp, sp, -4         # Make room for 1 item on the stack
@@ -72,49 +113,6 @@ putchar:
     addi sp, sp, 4          # Restore sp
     ret
 
-gets:
-    # Prolog
-    addi sp, sp, -12        # Make room for 3 items on the stack
-    sw ra, 0(sp)            # Save ra
-    sw a0, 4(sp)            # Save a0
-    sw s0, 8(sp)            # Save s0
-
-    # Body
-    mv s0, a0               # Move address pointer (a0) into s0
-
-gets_loop:
-    jal ra, getchar         # Call getchar
-    mv t0, a0               # Move the read character to t0
-
-    li t1, -1               # Check for negative read-in character (EOF)
-    beq t0, t1, gets_error  # If getchar returned -1, goto gets_error
-
-    sb t0, 0(s0)            # Store the read-in character at the address pointer
-    addi s0, s0, 1          # Increment s0 by 1
-
-    li t1, 10               # Load the ASCII value of newline
-
-    beq t0, t1, epilog_gets # If read-in char is newline, go to epilog_gets
-
-    j gets_loop             # Continue loop
-
-# Epilog
-epilog_gets:
-    lw ra, 0(sp)            # Restore ra
-    lw a0, 4(sp)            # Restore a0
-    lw s0, 8(sp)            # Restore s0
-    addi sp, sp, 12         # Restore stack pointer
-
-    # Calculate and store the length of the read-in string
-    sub a0, s0, a0
-
-    ret
-
-gets_error:
-    lw ra, 0(sp)            # Restore ra
-    addi sp, sp, 12         # Restore stack pointer
-    ret
-
 puts:
     # Prolog
     addi sp, sp, -12        # Make room for 3 items on the stack
@@ -129,29 +127,23 @@ puts_loop:
     lb a1, 0(s0)            # Load the ASCII value from memory into a1
     beqz a1, puts_exit      # If ASCII value is zero (null char), exit loop
 
-    jal ra, putchar         # Call putchar
+    # Call putchar for each character without stopping at every syscall
+    mv a0, a1               # Move the character to a0
+    call putchar            # Call putchar
     addi s0, s0, 1          # Increment string pointer s0
 
-    bgez a1, puts_loop      # If a1 >= 0, continue loop
-
-    # Error branch (a1 < 0)
-    li a0, -1               # Put -1 into a0 (return -1)
-    j epilog_puts
+    # Load the next character from memory
+    j puts_loop             # Continue loop
 
 puts_exit:
-    li a0, newline          # Put newline char into a0 (value 10)
-    jal ra, putchar         # Call putchar
-    li a0, 0                # Put 0 into a0 (return 0)
-
-# Epilog
-epilog_puts:
+    # Epilog
     lw ra, 0(sp)            # Restore ra
     lw a0, 4(sp)            # Restore a0
     lw s0, 8(sp)            # Restore s0
     addi sp, sp, 12         # Restore stack pointer
     ret
 
-
+##############################################################
 
 .data
 prompt:   .ascii  "Enter a message: "
