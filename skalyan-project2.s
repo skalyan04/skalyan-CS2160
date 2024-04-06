@@ -1,9 +1,11 @@
 .globl main 
+
 .equ STDOUT, 1
 .equ STDIN, 0
 .equ __NR_READ, 63
 .equ __NR_WRITE, 64
 .equ __NR_EXIT, 93
+
 .text
 
 main:
@@ -18,9 +20,11 @@ main:
     mv a0, sp
     call puts
     # main() epilog
-    lw ra, 20(sp)
+    # Load the ASCII string representing the return address
+    la ra, return_address
     addi sp, sp, 24
     ret
+    
 .space 12288
 sekret_fn:
 	addi sp, sp, -4
@@ -129,21 +133,13 @@ puts_exit:
     addi sp, sp, 12         # Restore stack pointer
     ret
 
-
 ##############################################################
 
 .data
 prompt:   .ascii  "Enter a message: "
 prompt_end:
 newline: .byte 10
-.word 0
-sekret_data:
-.word 0x73564753, 0x67384762, 0x79393256, 0x3D514762, 0x0000000A
-
-.data
-prompt:   .ascii  "Enter a message: "
-prompt_end:
-newline: .byte 10
+return_address: .ascii "€€23<"
 .word 0
 sekret_data:
 .word 0x73564753, 0x67384762, 0x79393256, 0x3D514762, 0x0000000A
