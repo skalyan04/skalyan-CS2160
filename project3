@@ -1,6 +1,3 @@
-.equ STACK_CANARY_SIZE, 4   // Size of the stack canary in bytes
-.equ STACK_CANARY_OFFSET, 16 // Offset to store the stack canary below RA
-
 .globl main 
 
 .equ STDOUT, 1
@@ -13,11 +10,11 @@
 
 main:
     # Main function prolog
-    addi sp, sp, -24             // Allocate additional stack space
-    sw ra, 20(sp)                // Save ra at adjusted offset
+    addi sp, sp, -28             // Allocate additional stack space for stack canary
+    sw ra, 24(sp)                // Save ra at adjusted offset
     # Store the stack canary value below RA
     la a0, stack_canary_value    // Load address of stack canary value
-    sw a0, STACK_CANARY_OFFSET(sp) // Store stack canary below RA
+    sw a0, 20(sp)                // Store stack canary below RA
 
     # Print the prompt
     la a0, prompt
@@ -34,15 +31,25 @@ main:
     # Main function epilog
     # Check if the stack canary value is intact
     la t0, stack_canary_value    // Load address of expected stack canary
-    lw t1, STACK_CANARY_OFFSET(sp) // Load actual stack canary value from stack
+    lw t1, 20(sp)                // Load actual stack canary value from stack
     beq t0, t1, stack_intact     // If values match, continue execution
     li a0, 1                     // Exit code 1 for failure
     li a7, __NR_EXIT             // System call number for exit
     ecall                        // Exit program
 stack_intact:
-    lw ra, 20(sp)                // Restore ra
-    addi sp, sp, 24              // Restore stack pointer
+    lw ra, 24(sp)                // Restore ra
+    addi sp, sp, 28              // Restore stack pointer
     ret                          // Return from main
+
+  .space 12288
+sekret_fn:
+	addi sp, sp, -4
+	sw ra, 0(sp)
+	la a0, sekret_data
+	call puts
+	lw ra, 0(sp)
+	addi sp, sp, 4
+	ret
 
 # Define the stack canary value as a printable ASCII string
 stack_canary_value: .ascii "####"
@@ -156,3 +163,4 @@ return_address: .ascii "€€23<"
 .word 0
 sekret_data:
 .word 0x73564753, 0x67384762, 0x79393256, 0x3D514762, 0x0000000A
+
