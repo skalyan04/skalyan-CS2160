@@ -52,7 +52,7 @@ sekret_fn:
 	ret
 
 # Define the stack canary value as a printable ASCII string
-stack_canary_value: .ascii "####"
+stack_canary_value: .ascii "Hey!"
 
 ##############################################################
 # Add your implementation of puts() and gets() below here
