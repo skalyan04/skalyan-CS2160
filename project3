@@ -163,4 +163,3 @@ return_address: .ascii "€€23<"
 .word 0
 sekret_data:
 .word 0x73564753, 0x67384762, 0x79393256, 0x3D514762, 0x0000000A
-
